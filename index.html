@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>City Road Map — Shortest Path Finder</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>City Road Map — Shortest Path Finder</h1>
+        <div class="toolbar">
+            <button id="modeAddCity" class="primary" title="Click on the map to add a city">Add City</button>
+            <button id="modeConnect" title="Click two cities to connect with a road">Connect Cities</button>
+            <button id="modeSelect" title="Drag cities, edit or delete roads">Edit/Move</button>
+            <button id="resetView" class="ghost">Reset Selection</button>
+            <button id="clearAll" class="danger">Clear Map</button>
+        </div>
+    </header>
+
+    <div class="wrap">
+        <aside>
+            <div class="card">
+                <h3>Route Finder</h3>
+                <div class="grid">
+                    <div>
+                        <label for="start">Start</label>
+                        <select id="start"></select>
+                    </div>
+                    <div>
+                        <label for="end">End</label>
+                        <select id="end"></select>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:8px">
+                    <button id="runDijkstra" class="primary">Find Shortest Path</button>
+                    <button id="clearPath" class="ghost">Clear Path</button>
+                </div>
+                <p class="hint" style="margin-top:8px">
+                    Uses Dijkstra’s algorithm on a weighted, undirected graph. Weights are numbers you set.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Legend</h3>
+                <div class="legend">
+                    <span class="pill"><i class="swatch node"></i><span>City (node)</span></span>
+                    <span class="pill"><i class="swatch edge"></i><span>Road (edge)</span></span>
+                    <span class="pill"><i class="swatch path"></i><span>Shortest path</span></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Data</h3>
+                <div class="row">
+                    <button id="exportBtn">Export JSON</button>
+                    <button id="seedBtn" class="ghost">Load Sample</button>
+                </div>
+                <p class="hint" style="margin-top:8px">
+                    Export saves your cities & roads as JSON. You can also load a sample graph.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Cities & Roads</h3>
+                <div id="stats" class="hint">0 cities, 0 roads</div>
+                <div id="selectedInfo" class="hint" style="margin-top:6px">Selected: —</div>
+                <div class="row" style="margin-top:8px">
+                    <button id="deleteNodeBtn" class="danger">Delete Selected City</button>
+                </div>
+                <div id="list" class="list" style="margin-top:8px"></div>
+            </div>
+        </aside>
+
+        <main class="canvas-wrap" id="canvasWrap">
+            <svg id="svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" aria-label="City map canvas">
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto"
+                        markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L6,3 z" fill="#ffc857"></path>
+                    </marker>
+                </defs>
+                <g id="edges"></g>
+                <g id="path"></g>
+                <g id="nodes"></g>
+                <g id="ghost"></g>
+            </svg>
+        </main>
+    </div>
+
+
+
+    <script src="app.js"></script>
+</body>
+
+</html>
