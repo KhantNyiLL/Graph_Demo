@@ -3,25 +3,26 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>City Road Map — Shortest Path Finder</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
     <header>
+        <button id="toggleSidebar" class="menu-btn" aria-label="Toggle menu">☰ Menu</button>
         <h1>City Road Map — Shortest Path Finder</h1>
         <div class="toolbar">
             <button id="modeAddCity" class="primary" title="Click on the map to add a city">Add City</button>
             <button id="modeConnect" title="Click two cities to connect with a road">Connect Cities</button>
             <button id="modeSelect" title="Drag cities, edit or delete roads">Edit/Move</button>
-            <button id="resetView" class="ghost">Reset Selection</button>
-            <button id="clearAll" class="danger">Clear Map</button>
+            <button id="resetView" class="ghost" title="Clear selection">Reset Selection</button>
+            <button id="clearAll" class="danger" title="Remove all cities & roads">Clear Map</button>
         </div>
     </header>
 
     <div class="wrap">
-        <aside>
+        <aside id="sidebar">
             <div class="card">
                 <h3>Route Finder</h3>
                 <div class="grid">
@@ -34,12 +35,12 @@
                         <select id="end"></select>
                     </div>
                 </div>
-                <div class="row" style="margin-top:8px">
+                <div class="row mt8">
                     <button id="runDijkstra" class="primary">Find Shortest Path</button>
                     <button id="clearPath" class="ghost">Clear Path</button>
                 </div>
-                <p class="hint" style="margin-top:8px">
-                    Uses Dijkstra’s algorithm on a weighted, undirected graph. Weights are numbers you set.
+                <p class="hint mt8">
+                    Uses Dijkstra on a weighted, undirected graph. Weights are numbers you set.
                 </p>
             </div>
 
@@ -58,24 +59,22 @@
                     <button id="exportBtn">Export JSON</button>
                     <button id="seedBtn" class="ghost">Load Sample</button>
                 </div>
-                <p class="hint" style="margin-top:8px">
-                    Export saves your cities & roads as JSON. You can also load a sample graph.
-                </p>
+                <p class="hint mt8">Export saves your cities & roads as JSON. You can also load a sample graph.</p>
             </div>
 
             <div class="card">
                 <h3>Cities & Roads</h3>
                 <div id="stats" class="hint">0 cities, 0 roads</div>
-                <div id="selectedInfo" class="hint" style="margin-top:6px">Selected: —</div>
-                <div class="row" style="margin-top:8px">
+                <div id="selectedInfo" class="hint mt6">Selected: —</div>
+                <div class="row mt8">
                     <button id="deleteNodeBtn" class="danger">Delete Selected City</button>
                 </div>
-                <div id="list" class="list" style="margin-top:8px"></div>
+                <div id="list" class="list mt8"></div>
             </div>
         </aside>
 
         <main class="canvas-wrap" id="canvasWrap">
-            <svg id="svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" aria-label="City map canvas">
+            <svg id="svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-label="City map canvas">
                 <defs>
                     <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto"
                         markerUnits="strokeWidth">
@@ -90,7 +89,10 @@
         </main>
     </div>
 
-
+    <footer>
+        <span>Built with HTML + CSS + JS. Graph theory: vertices (cities) & weighted edges (roads); Dijkstra for
+            shortest path.</span>
+    </footer>
 
     <script src="app.js"></script>
 </body>

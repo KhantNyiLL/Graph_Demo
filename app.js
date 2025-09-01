@@ -60,12 +60,14 @@ const gEdges = document.getElementById("edges");
 const gNodes = document.getElementById("nodes");
 const gPath = document.getElementById("path");
 const gGhost = document.getElementById("ghost");
+
 const stats = document.getElementById("stats");
 const listDiv = document.getElementById("list");
 const startSel = document.getElementById("start");
 const endSel = document.getElementById("end");
 const selectedInfo = document.getElementById("selectedInfo");
 const deleteNodeBtn = document.getElementById("deleteNodeBtn");
+const toggleSidebarBtn = document.getElementById("toggleSidebar");
 
 /* ==========
    Utils
@@ -84,10 +86,10 @@ function edgeBetween(a, b) {
     (e) => (e.a === a && e.b === b) || (e.a === b && e.b === a)
   );
 }
-function svgPoint(evt) {
+function svgPointFromClient(x, y) {
   const pt = svg.createSVGPoint();
-  pt.x = evt.clientX;
-  pt.y = evt.clientY;
+  pt.x = x;
+  pt.y = y;
   return pt.matrixTransform(svg.getScreenCTM().inverse());
 }
 
@@ -176,7 +178,7 @@ function render() {
     gNodes.appendChild(g);
   }
 
-  // sidebar
+  // sidebar text
   stats.textContent = `${state.nodes.length} cities, ${state.edges.length} roads`;
   const selName = state.selectedNode
     ? nodeById(state.selectedNode)?.name || "—"
@@ -218,20 +220,16 @@ function refreshDropdowns() {
    Node Removal
 ========== */
 function removeNode(id) {
-  // remove all edges incident to this node
   state.edges = state.edges.filter((e) => e.a !== id && e.b !== id);
-  // clear any path highlights (they may reference removed edges)
   state.pathEdges.clear();
-  // remove the node
   state.nodes = state.nodes.filter((n) => n.id !== id);
-  // clear selections if they referenced this node
   if (state.selectedNode === id) state.selectedNode = null;
   if (state.selectedForEdge === id) state.selectedForEdge = null;
   touchSaveRender();
 }
 
 /* ==========
-   Interactions
+   Interactions / Modes
 ========== */
 function setMode(m) {
   state.mode = m;
@@ -258,14 +256,12 @@ document
 document
   .getElementById("modeSelect")
   .addEventListener("click", () => setMode("select"));
-
 document.getElementById("resetView").addEventListener("click", () => {
   state.selectedNode = null;
   state.selectedForEdge = null;
   state.selectedEdgeId = null;
   render();
 });
-
 document.getElementById("clearAll").addEventListener("click", () => {
   if (!confirm("Clear all cities and roads?")) return;
   state.nodes = [];
@@ -275,23 +271,34 @@ document.getElementById("clearAll").addEventListener("click", () => {
   touchSaveRender();
 });
 
-svg.addEventListener("click", (evt) => {
+/* Drawer toggle (mobile) */
+toggleSidebarBtn.addEventListener("click", () => {
+  document.body.classList.toggle("sidebar-open");
+});
+
+/* Canvas: add city (tap/click) */
+svg.addEventListener("pointerdown", (evt) => {
   if (state.mode !== "add") return;
-  if (evt.target.closest(".node") || evt.target.closest(".edge-hit")) return; // prevent click-through
-  const { x, y } = svgPoint(evt);
+  // ignore when tapping existing nodes/edges
+  const targetIsInteractive =
+    evt.target.closest(".node") || evt.target.closest(".edge-hit");
+  if (targetIsInteractive) return;
+  const pt = svgPointFromClient(evt.clientX, evt.clientY);
   const name = prompt(
     "City name (e.g., A, B, Yangon)…",
     "City " + state.nextId
   );
   if (!name) return;
-  state.nodes.push({ id: uid(), name: name.trim(), x, y });
+  state.nodes.push({ id: uid(), name: name.trim(), x: pt.x, y: pt.y });
   touchSaveRender();
 });
 
+/* Attach node interactions (pointer events) */
 function attachNodeEvents(el, id) {
-  // select / connect
-  el.addEventListener("click", (evt) => {
+  // click for select/connect
+  el.addEventListener("pointerdown", (evt) => {
     evt.stopPropagation();
+    // connect mode
     if (state.mode === "connect") {
       if (!state.selectedForEdge) {
         state.selectedForEdge = id;
@@ -317,58 +324,40 @@ function attachNodeEvents(el, id) {
       touchSaveRender();
       return;
     }
-    // select mode: just select (drag handled below)
+    // select mode: select & maybe start dragging
     state.selectedNode = id;
     render();
-  });
 
-  // drag to move (select mode)
-  let dragging = false;
-  let offset = { x: 0, y: 0 };
-  el.addEventListener("mousedown", (evt) => {
     if (state.mode !== "select") return;
-    dragging = true;
-    el.style.cursor = "grabbing";
-    const pt = svgPoint(evt);
+
+    // drag handling with pointer events
     const n = nodeById(id);
-    offset.x = n.x - pt.x;
-    offset.y = n.y - pt.y;
-    evt.preventDefault();
-  });
-  window.addEventListener("mousemove", (evt) => {
-    if (!dragging) return;
-    const pt = svgPoint(evt);
-    const n = nodeById(id);
-    n.x = pt.x + offset.x;
-    n.y = pt.y + offset.y;
-    render(); // live
-  });
-  window.addEventListener("mouseup", () => {
-    if (dragging) {
-      dragging = false;
-      el.style.cursor = "grab";
-      saveState();
+    const start = svgPointFromClient(evt.clientX, evt.clientY);
+    const offset = { x: n.x - start.x, y: n.y - start.y };
+
+    el.setPointerCapture(evt.pointerId);
+    function onMove(e) {
+      const p = svgPointFromClient(e.clientX, e.clientY);
+      n.x = p.x + offset.x;
+      n.y = p.y + offset.y;
+      render(); // live feedback
     }
+    function onUp(e) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {}
+      saveState();
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+    }
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
   });
 }
 
-// delete selected city via button
-deleteNodeBtn.addEventListener("click", () => {
-  if (!state.selectedNode) {
-    alert("Select a city first (Edit/Move mode), then delete.");
-    return;
-  }
-  const n = nodeById(state.selectedNode);
-  const countEdges = state.edges.filter(
-    (e) => e.a === state.selectedNode || e.b === state.selectedNode
-  ).length;
-  const msg = `Delete city "${
-    n?.name ?? state.selectedNode
-  }" and its ${countEdges} road(s)?`;
-  if (confirm(msg)) removeNode(state.selectedNode);
-});
-
-// edit/delete road
+/* Edge editing */
 function onEdgeClick(edgeId) {
   const e = edgeById(edgeId);
   if (!e) return;
@@ -413,7 +402,6 @@ function dijkstra(startId, endId) {
   dist.set(startId, 0);
 
   while (Q.size) {
-    // extract-min
     let u = null,
       best = Infinity;
     for (const v of Q) {
@@ -439,7 +427,6 @@ function dijkstra(startId, endId) {
   }
   if (dist.get(endId) === Infinity) return { distance: Infinity, edges: [] };
 
-  // reconstruct path edges
   const usedEdges = [];
   let cur = endId;
   while (cur !== startId) {
@@ -473,7 +460,6 @@ document.getElementById("clearPath").addEventListener("click", () => {
   state.pathEdges.clear();
   render();
 });
-
 document.getElementById("exportBtn").addEventListener("click", () => {
   const data = { nodes: state.nodes, edges: state.edges, nextId: state.nextId };
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -486,7 +472,6 @@ document.getElementById("exportBtn").addEventListener("click", () => {
   a.click();
   URL.revokeObjectURL(url);
 });
-
 document.getElementById("seedBtn").addEventListener("click", () => {
   state.nodes = [
     { id: 1, name: "A", x: 250, y: 220 },
@@ -507,6 +492,32 @@ document.getElementById("seedBtn").addEventListener("click", () => {
   state.pathEdges.clear();
   touchSaveRender();
 });
+deleteNodeBtn.addEventListener("click", () => {
+  if (!state.selectedNode) {
+    alert("Select a city first (Edit/Move mode), then delete.");
+    return;
+  }
+  const n = nodeById(state.selectedNode);
+  const countEdges = state.edges.filter(
+    (e) => e.a === state.selectedNode || e.b === state.selectedNode
+  ).length;
+  const msg = `Delete city "${
+    n?.name ?? state.selectedNode
+  }" and its ${countEdges} road(s)?`;
+  if (confirm(msg)) removeNode(state.selectedNode);
+});
+
+/* Keyboard delete */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (state.mode === "select" && state.selectedNode) {
+      const n = nodeById(state.selectedNode);
+      if (n && confirm(`Delete city "${n.name}" and its connected roads?`)) {
+        removeNode(state.selectedNode);
+      }
+    }
+  }
+});
 
 /* ==========
    Init
@@ -515,17 +526,5 @@ function init() {
   setMode("add");
   loadState();
   render();
-
-  // bonus: allow Delete key to delete selected node while in select mode
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Delete" || e.key === "Backspace") {
-      if (state.mode === "select" && state.selectedNode) {
-        const n = nodeById(state.selectedNode);
-        if (n && confirm(`Delete city "${n.name}" and its connected roads?`)) {
-          removeNode(state.selectedNode);
-        }
-      }
-    }
-  });
 }
 init();
