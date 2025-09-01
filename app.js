@@ -68,6 +68,8 @@ const endSel = document.getElementById("end");
 const selectedInfo = document.getElementById("selectedInfo");
 const deleteNodeBtn = document.getElementById("deleteNodeBtn");
 const toggleSidebarBtn = document.getElementById("toggleSidebar");
+const sidebar = document.getElementById("sidebar");
+const backdrop = document.getElementById("backdrop");
 
 /* ==========
    Utils
@@ -91,6 +93,26 @@ function svgPointFromClient(x, y) {
   pt.x = x;
   pt.y = y;
   return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+/* ==========
+   Drawer helpers
+========== */
+function openSidebar() {
+  document.body.classList.add("sidebar-open");
+  backdrop.hidden = false;
+  sidebar.setAttribute("aria-hidden", "false");
+  toggleSidebarBtn.setAttribute("aria-expanded", "true");
+}
+function closeSidebar() {
+  document.body.classList.remove("sidebar-open");
+  backdrop.hidden = true;
+  sidebar.setAttribute("aria-hidden", "true");
+  toggleSidebarBtn.setAttribute("aria-expanded", "false");
+}
+function toggleSidebar() {
+  if (document.body.classList.contains("sidebar-open")) closeSidebar();
+  else openSidebar();
 }
 
 /* ==========
@@ -271,15 +293,16 @@ document.getElementById("clearAll").addEventListener("click", () => {
   touchSaveRender();
 });
 
-/* Drawer toggle (mobile) */
-toggleSidebarBtn.addEventListener("click", () => {
-  document.body.classList.toggle("sidebar-open");
+/* Drawer toggle + close events */
+toggleSidebarBtn.addEventListener("click", toggleSidebar);
+backdrop.addEventListener("click", closeSidebar);
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSidebar();
 });
 
 /* Canvas: add city (tap/click) */
 svg.addEventListener("pointerdown", (evt) => {
   if (state.mode !== "add") return;
-  // ignore when tapping existing nodes/edges
   const targetIsInteractive =
     evt.target.closest(".node") || evt.target.closest(".edge-hit");
   if (targetIsInteractive) return;
@@ -295,7 +318,6 @@ svg.addEventListener("pointerdown", (evt) => {
 
 /* Attach node interactions (pointer events) */
 function attachNodeEvents(el, id) {
-  // click for select/connect
   el.addEventListener("pointerdown", (evt) => {
     evt.stopPropagation();
     // connect mode
@@ -330,7 +352,6 @@ function attachNodeEvents(el, id) {
 
     if (state.mode !== "select") return;
 
-    // drag handling with pointer events
     const n = nodeById(id);
     const start = svgPointFromClient(evt.clientX, evt.clientY);
     const offset = { x: n.x - start.x, y: n.y - start.y };
@@ -507,7 +528,7 @@ deleteNodeBtn.addEventListener("click", () => {
   if (confirm(msg)) removeNode(state.selectedNode);
 });
 
-/* Keyboard delete */
+/* Keyboard shortcuts */
 window.addEventListener("keydown", (e) => {
   if (e.key === "Delete" || e.key === "Backspace") {
     if (state.mode === "select" && state.selectedNode) {
@@ -526,5 +547,7 @@ function init() {
   setMode("add");
   loadState();
   render();
+  // start with drawer closed on load
+  closeSidebar();
 }
 init();

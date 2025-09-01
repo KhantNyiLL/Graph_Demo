@@ -10,7 +10,7 @@
 
 <body>
     <header>
-        <button id="toggleSidebar" class="menu-btn" aria-label="Toggle menu">☰ Menu</button>
+        <button id="toggleSidebar" class="menu-btn" aria-label="Toggle menu" aria-expanded="false">☰ Menu</button>
         <h1>City Road Map — Shortest Path Finder</h1>
         <div class="toolbar">
             <button id="modeAddCity" class="primary" title="Click on the map to add a city">Add City</button>
@@ -21,8 +21,11 @@
         </div>
     </header>
 
+    <!-- Backdrop for drawer (click to close) -->
+    <div id="backdrop" class="backdrop" hidden></div>
+
     <div class="wrap">
-        <aside id="sidebar">
+        <aside id="sidebar" aria-hidden="true">
             <div class="card">
                 <h3>Route Finder</h3>
                 <div class="grid">
@@ -39,9 +42,7 @@
                     <button id="runDijkstra" class="primary">Find Shortest Path</button>
                     <button id="clearPath" class="ghost">Clear Path</button>
                 </div>
-                <p class="hint mt8">
-                    Uses Dijkstra on a weighted, undirected graph. Weights are numbers you set.
-                </p>
+                <p class="hint mt8">Uses Dijkstra on a weighted, undirected graph. Weights are numbers you set.</p>
             </div>
 
             <div class="card">
